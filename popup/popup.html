@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Nextdoor Deep Search</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Nextdoor Deep Search</h1>
+      <button id="settings-btn" class="settings-btn" title="AI Settings">⚙️</button>
+    </header>
+
+    <!-- Status Section -->
+    <section class="status-section">
+      <h2>Status</h2>
+      <div class="status-grid">
+        <div class="status-item">
+          <span class="status-label">UTI:</span>
+          <span id="uti-status" class="status-value">--</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Search:</span>
+          <span id="search-template-status" class="status-value">--</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Thread:</span>
+          <span id="thread-template-status" class="status-value">--</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Page:</span>
+          <span id="page-status" class="status-value">--</span>
+        </div>
+        <div class="status-item full-width" id="query-row" style="display: none;">
+          <span class="status-label">Query:</span>
+          <span id="query-value" class="status-value">--</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Message Area -->
+    <section class="message-section">
+      <div id="message" class="message"></div>
+    </section>
+
+    <!-- Progress Section (shown during search) -->
+    <section id="progress-section" class="progress-section" style="display: none;">
+      <div class="progress-bar-container">
+        <div id="progress-bar" class="progress-bar"></div>
+      </div>
+      <div class="progress-text">
+        <span id="progress-text">0 / 0</span>
+        <span id="error-count" class="error-count"></span>
+      </div>
+    </section>
+
+    <!-- Action Buttons -->
+    <section class="action-section">
+      <button id="search-btn" class="btn btn-primary" disabled>
+        Deep Search
+      </button>
+    </section>
+
+    <!-- Last Result Section -->
+    <section id="result-section" class="result-section" style="display: none;">
+      <h2>Last Search</h2>
+      <div class="result-grid">
+        <div class="result-item">
+          <span class="result-label">Query:</span>
+          <span id="result-query" class="result-value">--</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Threads:</span>
+          <span id="result-threads" class="result-value">--</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Comments:</span>
+          <span id="result-comments" class="result-value">--</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Errors:</span>
+          <span id="result-errors" class="result-value">--</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+      <div class="stats-item">
+        <span class="stats-label">Session searches:</span>
+        <span id="session-count" class="stats-value">0</span>
+      </div>
+      <a id="view-results-link" class="view-results-link" style="display: none;">View Last Results →</a>
+    </section>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
