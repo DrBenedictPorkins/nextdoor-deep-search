@@ -31,7 +31,8 @@
     ollamaUrl: document.getElementById('ollama-url'),
     ollamaModel: document.getElementById('ollama-model'),
 
-    // Custom Prompt
+    // Response Settings
+    maxTokens: document.getElementById('max-tokens'),
     customPrompt: document.getElementById('custom-prompt'),
     resetPromptBtn: document.getElementById('reset-prompt-btn'),
 
@@ -123,6 +124,11 @@
         // Load custom prompt if set
         if (currentConfig.customPrompt) {
           elements.customPrompt.value = currentConfig.customPrompt;
+        }
+
+        // Load max tokens if set
+        if (currentConfig.maxTokens) {
+          elements.maxTokens.value = currentConfig.maxTokens;
         }
 
         handleProviderChange();
@@ -329,13 +335,15 @@
 
     const provider = elements.providerSelect.value;
     const customPrompt = elements.customPrompt.value.trim();
+    const maxTokens = parseInt(elements.maxTokens.value, 10) || 2048;
 
     const config = {
       provider: provider,
       openai: null,
       claude: null,
       ollama: null,
-      customPrompt: customPrompt || null  // Store custom prompt (null if empty = use default)
+      customPrompt: customPrompt || null,  // Store custom prompt (null if empty = use default)
+      maxTokens: maxTokens
     };
 
     if (provider === 'openai') {

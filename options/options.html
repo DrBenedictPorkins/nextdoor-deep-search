@@ -77,10 +77,17 @@
         </div>
       </div>
 
-      <!-- Custom Analysis Prompt -->
+      <!-- Response Settings -->
       <div class="prompt-config">
-        <h2>Analysis Prompt</h2>
-        <p class="prompt-description">Customize the instructions sent to the AI when analyzing search results. This controls how the AI interprets and presents the data.</p>
+        <h2>Response Settings</h2>
+        <div class="form-group">
+          <label for="max-tokens">Max Output Tokens</label>
+          <input type="number" id="max-tokens" min="256" max="8192" step="256" value="2048">
+          <p class="field-hint">Controls response length. Lower = shorter/faster, higher = more detailed. Default: 2048</p>
+        </div>
+
+        <h3>Analysis Prompt</h3>
+        <p class="prompt-description">Customize the instructions sent to the AI when analyzing search results.</p>
         <div class="form-group">
           <label for="custom-prompt">Custom Prompt</label>
           <textarea id="custom-prompt" rows="10" placeholder="Enter custom analysis instructions..."></textarea>

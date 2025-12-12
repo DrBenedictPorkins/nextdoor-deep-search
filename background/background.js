@@ -1106,6 +1106,7 @@ CRITICAL RESPONSE BEHAVIOR AFTER TOOL SEARCH:
 // Internal output format rules (not exposed to user)
 const OUTPUT_FORMAT_RULES = `
 CRITICAL OUTPUT RULES:
+- BE CONCISE. Avoid verbose explanations. Get straight to the point.
 - Wrap your ENTIRE response in a code fence with language identifier
 - For HTML output use: \`\`\`html followed by your HTML content and closing \`\`\`
 - For Markdown output use: \`\`\`markdown followed by your content and closing \`\`\`
@@ -1113,7 +1114,7 @@ CRITICAL OUTPUT RULES:
 - Use inline styles: style="color:green;" for provider names, style="color:blue;" for contact info
 - Include contact info prominently: <span style="color:blue;">Phone: 555-1234</span>
 - Sort by strength of recommendation (best first)
-- Include full quotes from users in <blockquote> tags
+- Keep quotes brief - extract the key sentiment, not entire paragraphs
 IMPORTANT: Always wrap response in code fence (\`\`\`html or \`\`\`markdown).`;
 
 // Build the full system prompt (combines user prompt + internal instructions)
@@ -1231,6 +1232,7 @@ async function startAnalysis() {
   try {
     const provider = createLLMProvider(data.aiConfig);
     const threadsText = formatThreadsForLLM(data.lastSearchData.threads, data.lastSearchData.query);
+    const maxTokens = data.aiConfig.maxTokens || 2048;
 
     // Build system prompt with custom user prompt if configured
     const systemPrompt = buildSystemPrompt(data.aiConfig.customPrompt);
@@ -1242,7 +1244,7 @@ async function startAnalysis() {
     sendToAnalysis({ type: 'ANALYSIS_START' });
 
     let fullResponse = '';
-    for await (const chunk of provider.streamCompletion(messages)) {
+    for await (const chunk of provider.streamCompletion(messages, maxTokens)) {
       fullResponse += chunk;
       sendToAnalysis({ type: 'ANALYSIS_CHUNK', data: { chunk } });
     }
@@ -1284,6 +1286,7 @@ async function handleChatMessage(userMessage) {
 
   try {
     const provider = createLLMProvider(data.aiConfig);
+    const maxTokens = data.aiConfig.maxTokens || 2048;
 
     // Add user message to history
     state.chatHistory.push({ role: 'user', content: userMessage });
@@ -1334,7 +1337,7 @@ async function handleChatMessage(userMessage) {
         console.log('[NDS] Tool loop iteration:', iterations);
 
         // Call LLM with tools (non-streaming for tool detection)
-        const response = await provider.completionWithTools(messages, SEARCH_TOOLS);
+        const response = await provider.completionWithTools(messages, SEARCH_TOOLS, maxTokens);
 
         if (response.type === 'text') {
           // LLM gave a text response - simulate streaming by chunking
@@ -1425,7 +1428,7 @@ async function handleChatMessage(userMessage) {
     } else {
       // Fallback: Provider doesn't support tools, use streaming
       let fullResponse = '';
-      for await (const chunk of provider.streamCompletion(messages)) {
+      for await (const chunk of provider.streamCompletion(messages, maxTokens)) {
         fullResponse += chunk;
         sendToAnalysis({ type: 'CHAT_CHUNK', data: { chunk } });
       }
