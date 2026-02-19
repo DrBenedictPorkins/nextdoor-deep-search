@@ -1,60 +1,39 @@
 # Nextdoor Deep Search
 
-A Firefox extension that solves the painful search experience on Nextdoor.com.
+A Firefox extension that extracts full threads and nested comments from Nextdoor search results, with AI-powered analysis.
 
-**Requirements:** Firefox browser, Nextdoor.com account (must be logged in).
+**Requirements:** Firefox, logged-in Nextdoor account.
 
-## The Problem
+## What It Does
 
-Nextdoor's native search is frustrating. When you search for something like "plumber recommendations," you get a list of thread titles. To find actual useful information, you have to:
+Nextdoor's search shows thread titles. To find actual recommendations, you click into each thread, read all comments, go back, repeat. This extension does that automatically — fetches every matching thread with all comments and nested replies into a single results page.
 
-1. Click into each thread individually
-2. Read through all comments and nested replies
-3. Manually extract relevant details (names, phone numbers, recommendations)
-4. Go back, click the next thread, and repeat
-
-This results in dozens of clicks and endless context-switching just to answer a simple question.
-
-## The Solution
-
-This extension automates the tedious work. Using your existing search query, it automatically fetches all matching threads, retrieves every comment and nested reply, and combines everything into a single page for easy viewing.
-
-Optionally, you can use AI to analyze the combined results and extract exactly what you're looking for—like a ranked list of recommended service providers with contact info and quotes from neighbors. You can then ask follow-up questions against the results, or request additional searches for specific terms discovered during analysis (e.g., "search for 'Lazar's Pizza' and list all posts mentioning them").
-
-## AI-Powered Analysis
-
-The extension supports three AI providers for analyzing search results:
-
-- **OpenAI**: gpt-5.2, gpt-5.1, gpt-4.1, gpt-4.1-nano, gpt-4o, gpt-4o-mini
-- **Claude (Anthropic)**: claude-sonnet-4.5, claude-haiku-4.5, claude-opus-4.5, claude-sonnet-4, claude-3.5-haiku
-- **Ollama (Local)**: Any locally installed model (llama3.1, qwen2.5, mistral, etc.)
-
-The AI can also execute follow-up searches to gather more context, and you can customize the analysis prompt to fit your specific needs.
+Results include relevance scoring, search term highlighting, and sort/filter controls. Optionally, Claude AI can analyze everything and extract what you need (ranked providers, contact info, quotes from neighbors), with follow-up search capability.
 
 ## Installation
 
-1. Clone this repository
-2. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`
-3. Click "Load Temporary Add-on"
-4. Select the `manifest.json` file
+1. Clone this repo
+2. Open `about:debugging#/runtime/this-firefox`
+3. Click "Load Temporary Add-on" and select `manifest.json`
 
 ## Usage
 
-1. **Browse Nextdoor**: Visit nextdoor.com, perform a search, and click on any thread
-   - This captures the required GraphQL request templates
-2. **Check Badge**:
-   - Red `!` = Missing session (browse Nextdoor)
-   - Yellow `!` = Missing templates (search + click a thread)
-   - Green `GO` = Ready
-3. **Deep Search**: Click the extension icon and press "Deep Search"
-4. **AI Analysis**: Configure an AI provider in options, then click "Analyze with AI"
+The popup shows a 3-step setup stepper:
+
+1. **Browse Nextdoor** — captures authentication
+2. **Search for something** — captures search query template
+3. **Click on any post** — captures thread template
+
+Badge: Red `!` = missing auth, Yellow `!` = missing templates, Green `GO` = ready.
+
+Once ready, click "Deep Search" to extract all threads and comments. Results open in a new tab with relevance badges, highlighted search terms, and sort by relevance/comments/date.
+
+Click "Analyze with AI" to get Claude's analysis. Configure your API key in extension options.
 
 ## How It Works
 
-The extension captures GraphQL persisted query hashes from your browser's actual requests to Nextdoor (since the API rejects invalid/outdated hashes). It then replays these requests to fetch full thread details.
-
-API requests execute in the page's main world using Firefox's `wrappedJSObject` to properly send credentials/cookies.
+Nextdoor uses persisted GraphQL queries identified by SHA256 hashes — the server rejects unknown hashes. The extension captures these from your live browser requests and replays them with modified variables. API calls execute in the page's main world via Firefox's `wrappedJSObject` to send credentials properly.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file
+MIT
