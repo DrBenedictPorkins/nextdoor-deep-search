@@ -5,7 +5,7 @@
 Nextdoor Deep Search is a Firefox extension (Manifest V2) that:
 1. Captures GraphQL request templates from user's browser activity
 2. Replays those requests to fetch full thread details including nested comments
-3. Displays results with AI-powered analysis (OpenAI, Claude, Ollama)
+3. Displays results with relevance scoring, highlighting, and AI-powered analysis (Claude)
 
 ## Critical Implementation Details
 
@@ -44,26 +44,33 @@ Nextdoor uses persisted GraphQL queries with `sha256Hash`. Invalid/outdated hash
 - Templates stored in `browser.storage.local`
 - Extension's own requests (`tabId === -1`) are ignored
 
-### LLM Provider Notes
+### Claude API Notes
 
-- **Claude API**: Requires `anthropic-dangerous-direct-browser-access: true` header for browser CORS
-- **Claude Messages**: No `role: 'system'` in messages array - prepend to first user message
-- **Ollama tool calls**: Arguments must be objects, not JSON strings
+- Requires `anthropic-dangerous-direct-browser-access: true` header for browser CORS
+- No `role: 'system'` in messages array - prepend to first user message
+- Tool calling for follow-up searches (searchPosts tool)
 
 ## File Structure
 
 ```
 background/
   background.js      # State, request capture, API orchestration, LLM chat
-  llm-providers.js   # OpenAI/Claude/Ollama streaming & tool calling
+  llm-providers.js   # Claude streaming & tool calling
 
 content/
   extract.js         # Main-world fetch execution via wrappedJSObject
 
-popup/               # Extension popup UI
-results/             # Search results page with AI chat
-options/             # LLM configuration
+popup/               # Extension popup UI (stepper setup flow)
+results/             # Search results page with relevance scoring & AI chat
+options/             # Claude API key configuration
 ```
+
+## Popup Stepper
+
+Three-step setup flow replacing the old status grid:
+1. Browse Nextdoor (captures UTI/auth)
+2. Search for something (captures searchPost template)
+3. Click on any post (captures feedItem template)
 
 ## Badge States
 
@@ -71,6 +78,14 @@ options/             # LLM configuration
 - Yellow `!`: Missing templates (search/click threads to capture)
 - Green `GO`: Ready
 - Blue `...`: Search in progress
+
+## Results Page
+
+- Relevance scoring per thread (keyword frequency: title x3, body x2, comments x1)
+- Search term highlighting in titles, bodies, comments
+- Sort by relevance/comments/date, filter out low-match threads
+- Low-relevance threads auto-collapsed
+- Header shows relevance summary with distribution bar
 
 ## Storage Schema
 
@@ -82,10 +97,8 @@ options/             # LLM configuration
     feedItem: { hash, headers, payload, capturedAt }
   },
   aiConfig: {
-    provider: 'openai' | 'claude' | 'ollama',
-    openai: { apiKey, model },
+    provider: 'claude',
     claude: { apiKey, model },
-    ollama: { url, model },
     customPrompt: string  // Optional custom analysis prompt
   },
   lastSearchData: { query, timestamp, threads[] }

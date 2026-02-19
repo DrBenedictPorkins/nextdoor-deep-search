@@ -2,7 +2,14 @@
   "manifest_version": 2,
   "name": "Nextdoor Deep Search",
   "version": "1.1.0",
-  "description": "Deep search Nextdoor posts with full thread extraction and markdown export",
+  "description": "Extract full threads and nested comments from Nextdoor search results with AI-powered analysis",
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "nextdoor-deep-search@drbenedictporkins",
+      "strict_min_version": "57.0"
+    }
+  },
 
   "icons": {
     "48": "icons/icon-48.png",
@@ -11,12 +18,10 @@
 
   "permissions": [
     "webRequest",
-    "webRequestBlocking",
     "storage",
     "tabs",
     "https://nextdoor.com/*",
-    "https://api.anthropic.com/*",
-    "<all_urls>"
+    "https://api.anthropic.com/*"
   ],
 
   "web_accessible_resources": [

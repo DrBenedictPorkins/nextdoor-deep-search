@@ -94,7 +94,7 @@
       if (data.aiConfig && data.aiConfig.claude) {
         currentConfig = data.aiConfig;
         elements.claudeApiKey.value = currentConfig.claude.apiKey || '';
-        elements.claudeModel.value = currentConfig.claude.model || 'claude-haiku-4-5-20251001';
+        elements.claudeModel.value = currentConfig.claude.model || 'claude-haiku-4-5';
 
         // Load custom prompt if set
         if (currentConfig.customPrompt) {
