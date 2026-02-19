@@ -2,7 +2,7 @@
  * Nextdoor Deep Search - Options Page Script
  *
  * Handles:
- * 1. Provider selection and configuration
+ * 1. Claude API configuration
  * 2. API validation
  * 3. Storage of AI configuration
  */
@@ -12,24 +12,10 @@
 
   // DOM Elements
   const elements = {
-    providerSelect: document.getElementById('provider-select'),
-
-    // OpenAI
-    openaiConfig: document.getElementById('openai-config'),
-    openaiApiKey: document.getElementById('openai-api-key'),
-    openaiModel: document.getElementById('openai-model'),
-    openaiToggleKey: document.getElementById('openai-toggle-key'),
-
     // Claude
-    claudeConfig: document.getElementById('claude-config'),
     claudeApiKey: document.getElementById('claude-api-key'),
     claudeModel: document.getElementById('claude-model'),
     claudeToggleKey: document.getElementById('claude-toggle-key'),
-
-    // Ollama
-    ollamaConfig: document.getElementById('ollama-config'),
-    ollamaUrl: document.getElementById('ollama-url'),
-    ollamaModel: document.getElementById('ollama-model'),
 
     // Response Settings
     maxTokens: document.getElementById('max-tokens'),
@@ -69,18 +55,18 @@
     await loadConfiguration();
 
     // Set up event listeners
-    elements.providerSelect.addEventListener('change', handleProviderChange);
-    elements.openaiToggleKey.addEventListener('click', () => togglePasswordVisibility(elements.openaiApiKey, elements.openaiToggleKey));
     elements.claudeToggleKey.addEventListener('click', () => togglePasswordVisibility(elements.claudeApiKey, elements.claudeToggleKey));
     elements.validateBtn.addEventListener('click', validateConfiguration);
     elements.saveBtn.addEventListener('click', saveConfiguration);
     elements.resetPromptBtn.addEventListener('click', resetPromptToDefault);
 
     // Enable validation when inputs change
-    [elements.openaiApiKey, elements.openaiModel, elements.claudeApiKey, elements.claudeModel,
-     elements.ollamaUrl, elements.ollamaModel].forEach(el => {
+    [elements.claudeApiKey, elements.claudeModel].forEach(el => {
       el.addEventListener('input', handleInputChange);
     });
+
+    // Enable validate button since Claude is always selected
+    elements.validateBtn.disabled = false;
   }
 
   async function loadDefaultPrompt() {
@@ -105,21 +91,10 @@
   async function loadConfiguration() {
     try {
       const data = await browser.storage.local.get('aiConfig');
-      if (data.aiConfig && data.aiConfig.provider) {
+      if (data.aiConfig && data.aiConfig.claude) {
         currentConfig = data.aiConfig;
-        elements.providerSelect.value = currentConfig.provider;
-
-        // Load provider-specific config
-        if (currentConfig.provider === 'openai' && currentConfig.openai) {
-          elements.openaiApiKey.value = currentConfig.openai.apiKey || '';
-          elements.openaiModel.value = currentConfig.openai.model || 'gpt-4o';
-        } else if (currentConfig.provider === 'claude' && currentConfig.claude) {
-          elements.claudeApiKey.value = currentConfig.claude.apiKey || '';
-          elements.claudeModel.value = currentConfig.claude.model || 'claude-sonnet-4-20250514';
-        } else if (currentConfig.provider === 'ollama' && currentConfig.ollama) {
-          elements.ollamaUrl.value = currentConfig.ollama.url || 'http://localhost:11434';
-          elements.ollamaModel.value = currentConfig.ollama.model || 'qwen2.5:7b';
-        }
+        elements.claudeApiKey.value = currentConfig.claude.apiKey || '';
+        elements.claudeModel.value = currentConfig.claude.model || 'claude-haiku-4-5-20251001';
 
         // Load custom prompt if set
         if (currentConfig.customPrompt) {
@@ -131,7 +106,6 @@
           elements.maxTokens.value = currentConfig.maxTokens;
         }
 
-        handleProviderChange();
         updateCurrentStatus();
       }
     } catch (e) {
@@ -142,28 +116,6 @@
   // ============================================================================
   // UI Event Handlers
   // ============================================================================
-
-  function handleProviderChange() {
-    const provider = elements.providerSelect.value;
-
-    // Hide all configs
-    elements.openaiConfig.style.display = 'none';
-    elements.claudeConfig.style.display = 'none';
-    elements.ollamaConfig.style.display = 'none';
-
-    // Show selected config
-    if (provider === 'openai') {
-      elements.openaiConfig.style.display = 'block';
-    } else if (provider === 'claude') {
-      elements.claudeConfig.style.display = 'block';
-    } else if (provider === 'ollama') {
-      elements.ollamaConfig.style.display = 'block';
-    }
-
-    // Update button states
-    updateButtonStates();
-    hideValidation();
-  }
 
   function handleInputChange() {
     validationPassed = false;
@@ -182,10 +134,6 @@
   }
 
   function updateButtonStates() {
-    const provider = elements.providerSelect.value;
-    const hasProvider = provider !== '';
-
-    elements.validateBtn.disabled = !hasProvider;
     elements.saveBtn.disabled = !validationPassed;
   }
 
@@ -194,23 +142,12 @@
   // ============================================================================
 
   async function validateConfiguration() {
-    const provider = elements.providerSelect.value;
-
-    if (!provider) return;
-
     showValidationSpinner('Validating configuration...');
     validationPassed = false;
     updateButtonStates();
 
     try {
-      if (provider === 'openai') {
-        await validateOpenAI();
-      } else if (provider === 'claude') {
-        await validateClaude();
-      } else if (provider === 'ollama') {
-        await validateOllama();
-      }
-
+      await validateClaude();
       validationPassed = true;
       showValidationSuccess('Configuration validated successfully!');
     } catch (error) {
@@ -219,39 +156,6 @@
     }
 
     updateButtonStates();
-  }
-
-  async function validateOpenAI() {
-    const apiKey = elements.openaiApiKey.value.trim();
-    const model = elements.openaiModel.value;
-
-    if (!apiKey) {
-      throw new Error('API key is required');
-    }
-
-    const response = await fetch('https://api.openai.com/v1/models', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`
-      }
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('Invalid API key');
-      } else if (response.status === 429) {
-        throw new Error('Rate limit exceeded');
-      } else {
-        throw new Error(`API error: ${response.status}`);
-      }
-    }
-
-    const data = await response.json();
-    const modelExists = data.data.some(m => m.id === model);
-
-    if (!modelExists) {
-      console.warn('[NDS Options] Model not found in list, but continuing...');
-    }
   }
 
   async function validateClaude() {
@@ -297,35 +201,6 @@
     }
   }
 
-  async function validateOllama() {
-    const url = elements.ollamaUrl.value.trim();
-    const model = elements.ollamaModel.value.trim();
-
-    if (!url) {
-      throw new Error('Server URL is required');
-    }
-
-    if (!model) {
-      throw new Error('Model name is required');
-    }
-
-    // Check server and get available models
-    const response = await fetch(`${url}/api/tags`, {
-      method: 'GET'
-    });
-
-    if (!response.ok) {
-      throw new Error(`Cannot connect to Ollama server at ${url}`);
-    }
-
-    const data = await response.json();
-    const modelExists = data.models.some(m => m.name === model);
-
-    if (!modelExists) {
-      throw new Error(`Model "${model}" not found on server. Available models: ${data.models.map(m => m.name).join(', ')}`);
-    }
-  }
-
   // ============================================================================
   // Save Configuration
   // ============================================================================
@@ -333,42 +208,25 @@
   async function saveConfiguration() {
     if (!validationPassed) return;
 
-    const provider = elements.providerSelect.value;
     const customPrompt = elements.customPrompt.value.trim();
     const maxTokens = parseInt(elements.maxTokens.value, 10) || 2048;
 
     const config = {
-      provider: provider,
-      openai: null,
-      claude: null,
-      ollama: null,
-      customPrompt: customPrompt || null,  // Store custom prompt (null if empty = use default)
-      maxTokens: maxTokens
-    };
-
-    if (provider === 'openai') {
-      config.openai = {
-        apiKey: elements.openaiApiKey.value.trim(),
-        model: elements.openaiModel.value
-      };
-    } else if (provider === 'claude') {
-      config.claude = {
+      provider: 'claude',
+      claude: {
         apiKey: elements.claudeApiKey.value.trim(),
         model: elements.claudeModel.value
-      };
-    } else if (provider === 'ollama') {
-      config.ollama = {
-        url: elements.ollamaUrl.value.trim(),
-        model: elements.ollamaModel.value.trim()
-      };
-    }
+      },
+      customPrompt: customPrompt || null,
+      maxTokens: maxTokens
+    };
 
     try {
       await browser.storage.local.set({ aiConfig: config });
       currentConfig = config;
       updateCurrentStatus();
       showValidationSuccess('Configuration saved successfully!');
-      console.log('[NDS Options] Configuration saved:', provider);
+      console.log('[NDS Options] Configuration saved: claude');
     } catch (e) {
       console.error('[NDS Options] Error saving config:', e);
       showValidationError('Failed to save configuration');
@@ -411,20 +269,9 @@
   }
 
   function updateCurrentStatus() {
-    if (currentConfig && currentConfig.provider) {
+    if (currentConfig && currentConfig.claude) {
       elements.currentStatus.style.display = 'block';
-      let providerName = currentConfig.provider.charAt(0).toUpperCase() + currentConfig.provider.slice(1);
-      let model = '';
-
-      if (currentConfig.provider === 'openai' && currentConfig.openai) {
-        model = currentConfig.openai.model;
-      } else if (currentConfig.provider === 'claude' && currentConfig.claude) {
-        model = currentConfig.claude.model;
-      } else if (currentConfig.provider === 'ollama' && currentConfig.ollama) {
-        model = currentConfig.ollama.model;
-      }
-
-      elements.statusText.textContent = `${providerName} - ${model}`;
+      elements.statusText.textContent = `Claude - ${currentConfig.claude.model}`;
     } else {
       elements.currentStatus.style.display = 'none';
     }

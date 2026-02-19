@@ -91,36 +91,8 @@
       </div>
 
       <div class="modal-body">
-        <div class="form-group">
-          <label for="provider-select">Provider:</label>
-          <select id="provider-select" class="form-control">
-            <option value="openai">OpenAI</option>
-            <option value="claude">Anthropic Claude</option>
-            <option value="ollama">Ollama (Local)</option>
-          </select>
-        </div>
-
-        <!-- OpenAI Config -->
-        <div id="openai-config" class="provider-config">
-          <div class="form-group">
-            <label for="openai-key">API Key:</label>
-            <input type="password" id="openai-key" class="form-control" placeholder="sk-...">
-          </div>
-          <div class="form-group">
-            <label for="openai-model">Model:</label>
-            <select id="openai-model" class="form-control">
-              <option value="gpt-5.2">gpt-5.2 (Recommended)</option>
-              <option value="gpt-5.1">gpt-5.1</option>
-              <option value="gpt-4.1">gpt-4.1</option>
-              <option value="gpt-4.1-nano">gpt-4.1-nano (Budget)</option>
-              <option value="gpt-4o">gpt-4o</option>
-              <option value="gpt-4o-mini">gpt-4o-mini</option>
-            </select>
-          </div>
-        </div>
-
         <!-- Claude Config -->
-        <div id="claude-config" class="provider-config" style="display: none;">
+        <div id="claude-config" class="provider-config">
           <div class="form-group">
             <label for="claude-key">API Key:</label>
             <input type="password" id="claude-key" class="form-control" placeholder="sk-ant-...">
@@ -128,24 +100,10 @@
           <div class="form-group">
             <label for="claude-model">Model:</label>
             <select id="claude-model" class="form-control">
-              <option value="claude-sonnet-4-5-20250929">claude-sonnet-4.5 (Recommended)</option>
-              <option value="claude-haiku-4-5-20251001">claude-haiku-4.5 (Fast)</option>
-              <option value="claude-opus-4-5-20251101">claude-opus-4.5 (Premium)</option>
-              <option value="claude-sonnet-4-20250514">claude-sonnet-4</option>
-              <option value="claude-3-5-haiku-20241022">claude-3.5-haiku (Budget)</option>
+              <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Recommended)</option>
+              <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+              <option value="claude-opus-4-6">Claude Opus 4.6 (Premium)</option>
             </select>
-          </div>
-        </div>
-
-        <!-- Ollama Config -->
-        <div id="ollama-config" class="provider-config" style="display: none;">
-          <div class="form-group">
-            <label for="ollama-url">Server URL:</label>
-            <input type="text" id="ollama-url" class="form-control" placeholder="http://localhost:11434">
-          </div>
-          <div class="form-group">
-            <label for="ollama-model">Model:</label>
-            <input type="text" id="ollama-model" class="form-control" placeholder="llama3.2">
           </div>
         </div>
 

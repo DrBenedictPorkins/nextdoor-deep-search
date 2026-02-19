@@ -29,10 +29,7 @@
     closeModalBtn: document.getElementById('close-modal-btn'),
     cancelModalBtn: document.getElementById('cancel-modal-btn'),
     saveConfigBtn: document.getElementById('save-config-btn'),
-    providerSelect: document.getElementById('provider-select'),
-    openaiConfig: document.getElementById('openai-config'),
     claudeConfig: document.getElementById('claude-config'),
-    ollamaConfig: document.getElementById('ollama-config'),
     validationStatus: document.getElementById('validation-status'),
     debugLogs: document.getElementById('debug-logs'),
     refreshLogsBtn: document.getElementById('refresh-logs-btn'),
@@ -154,7 +151,6 @@
     elements.closeModalBtn.addEventListener('click', closeModal);
     elements.cancelModalBtn.addEventListener('click', closeModal);
     elements.saveConfigBtn.addEventListener('click', handleSaveConfig);
-    elements.providerSelect.addEventListener('change', handleProviderChange);
 
     // Connect to background for streaming
     port = browser.runtime.connect({ name: 'analysis' });
@@ -472,25 +468,12 @@
   }
 
   function updateProviderBadge() {
-    if (!currentAIConfig || !currentAIConfig.provider) {
+    if (!currentAIConfig || !currentAIConfig.claude) {
       elements.aiProviderBadge.textContent = '';
       return;
     }
 
-    const provider = currentAIConfig.provider;
-    let model = '';
-
-    if (provider === 'openai' && currentAIConfig.openai) {
-      model = currentAIConfig.openai.model;
-    } else if (provider === 'claude' && currentAIConfig.claude) {
-      model = currentAIConfig.claude.model;
-    } else if (provider === 'ollama' && currentAIConfig.ollama) {
-      model = currentAIConfig.ollama.model;
-    }
-
-    // Format: "Provider • model"
-    const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
-    elements.aiProviderBadge.textContent = `${providerName} • ${model}`;
+    elements.aiProviderBadge.textContent = `Claude • ${currentAIConfig.claude.model}`;
   }
 
   async function loadChatHistory() {
@@ -537,7 +520,6 @@
 
   function showConfigModal() {
     elements.configModal.style.display = 'flex';
-    handleProviderChange(); // Show correct config section
   }
 
   function closeModal() {
@@ -545,50 +527,19 @@
     elements.validationStatus.style.display = 'none';
   }
 
-  function handleProviderChange() {
-    const provider = elements.providerSelect.value;
-
-    elements.openaiConfig.style.display = provider === 'openai' ? 'block' : 'none';
-    elements.claudeConfig.style.display = provider === 'claude' ? 'block' : 'none';
-    elements.ollamaConfig.style.display = provider === 'ollama' ? 'block' : 'none';
-  }
-
   async function handleSaveConfig() {
-    const provider = elements.providerSelect.value;
-    let config = { provider };
+    const apiKey = document.getElementById('claude-key').value.trim();
+    const model = document.getElementById('claude-model').value;
 
-    // Gather config based on provider
-    if (provider === 'openai') {
-      const apiKey = document.getElementById('openai-key').value.trim();
-      const model = document.getElementById('openai-model').value;
-
-      if (!apiKey) {
-        showValidationStatus('invalid', 'Please enter an API key');
-        return;
-      }
-
-      config.openai = { apiKey, model };
-    } else if (provider === 'claude') {
-      const apiKey = document.getElementById('claude-key').value.trim();
-      const model = document.getElementById('claude-model').value;
-
-      if (!apiKey) {
-        showValidationStatus('invalid', 'Please enter an API key');
-        return;
-      }
-
-      config.claude = { apiKey, model };
-    } else if (provider === 'ollama') {
-      const url = document.getElementById('ollama-url').value.trim() || 'http://localhost:11434';
-      const model = document.getElementById('ollama-model').value.trim();
-
-      if (!model) {
-        showValidationStatus('invalid', 'Please enter a model name');
-        return;
-      }
-
-      config.ollama = { url, model };
+    if (!apiKey) {
+      showValidationStatus('invalid', 'Please enter an API key');
+      return;
     }
+
+    const config = {
+      provider: 'claude',
+      claude: { apiKey, model }
+    };
 
     // Validate config
     showValidationStatus('validating', 'Validating configuration...');
@@ -618,40 +569,16 @@
   }
 
   async function validateConfig(config) {
-    if (config.provider === 'openai') {
-      return validateOpenAI(config.openai.apiKey);
-    } else if (config.provider === 'claude') {
-      return validateClaude(config.claude.apiKey);
-    } else if (config.provider === 'ollama') {
-      return validateOllama(config.ollama.url, config.ollama.model);
-    }
-  }
-
-  async function validateOpenAI(apiKey) {
-    const response = await fetch('https://api.openai.com/v1/models', {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`
-      }
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('Invalid API key');
-      }
-      throw new Error(`API error: ${response.status}`);
-    }
-  }
-
-  async function validateClaude(apiKey) {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'x-api-key': config.claude.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 10,
         messages: [{ role: 'user', content: 'test' }]
       })
@@ -662,28 +589,6 @@
         throw new Error('Invalid API key');
       }
       throw new Error(`API error: ${response.status}`);
-    }
-  }
-
-  async function validateOllama(url, model) {
-    try {
-      const response = await fetch(`${url}/api/tags`);
-      if (!response.ok) {
-        throw new Error(`Cannot connect to Ollama server at ${url}`);
-      }
-
-      const data = await response.json();
-      const models = data.models || [];
-      const modelExists = models.some(m => m.name === model || m.name.startsWith(model + ':'));
-
-      if (!modelExists) {
-        throw new Error(`Model "${model}" not found. Available models: ${models.map(m => m.name).join(', ') || 'none'}`);
-      }
-    } catch (e) {
-      if (e.message.includes('Model')) {
-        throw e;
-      }
-      throw new Error(`Cannot connect to Ollama server: ${e.message}`);
     }
   }
 
