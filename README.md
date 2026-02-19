@@ -4,6 +4,8 @@ A Firefox extension that extracts full threads and nested comments from Nextdoor
 
 **Requirements:** Firefox, logged-in Nextdoor account.
 
+[![Demo](https://img.youtube.com/vi/6UFDLPi5z6E/maxresdefault.jpg)](https://www.youtube.com/watch?v=6UFDLPi5z6E)
+
 ## What It Does
 
 Nextdoor's search shows thread titles. To find actual recommendations, you click into each thread, read all comments, go back, repeat. This extension does that automatically — fetches every matching thread with all comments and nested replies into a single results page.
