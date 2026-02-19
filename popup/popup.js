@@ -227,6 +227,7 @@
       elements.searchBtn.textContent = 'Searching...';
       elements.searchBtn.disabled = true;
       elements.searchBtn.classList.add('running');
+      elements.resultSection.style.display = 'none';
       elements.progressSection.style.display = 'block';
       elements.progressBar.style.width = '0%';
       elements.progressText.textContent = 'Starting...';

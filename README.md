@@ -12,6 +12,12 @@ Nextdoor's search shows thread titles. To find actual recommendations, you click
 
 Results include relevance scoring, search term highlighting, and sort/filter controls. Optionally, Claude AI can analyze everything and extract what you need (ranked providers, contact info, quotes from neighbors), with follow-up search capability.
 
+## Screenshots
+
+| Popup Ready | Searching | Results | AI Analysis |
+|:-----------:|:---------:|:-------:|:-----------:|
+| ![Popup](screenshots/01-popup-ready.jpg) | ![Searching](screenshots/02-popup-searching.jpg) | ![Results](screenshots/03-results-page.jpg) | ![AI](screenshots/04-ai-analysis.jpg) |
+
 ## Installation
 
 1. Clone this repo
@@ -30,7 +36,7 @@ Badge: Red `!` = missing auth, Yellow `!` = missing templates, Green `GO` = read
 
 Once ready, click "Deep Search" to extract all threads and comments. Results open in a new tab with relevance badges, highlighted search terms, and sort by relevance/comments/date.
 
-Click "Analyze with AI" to get Claude's analysis. Configure your API key in extension options.
+Click "Ask AI" to get Claude's summary and recommendations. Configure your API key in extension options.
 
 ## How It Works
 

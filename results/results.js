@@ -823,7 +823,7 @@
       showAnalysisError(e.message);
       isAnalyzing = false;
       elements.analyzeBtn.disabled = false;
-      elements.analyzeBtn.textContent = 'Analyze with AI';
+      elements.analyzeBtn.textContent = 'Ask AI';
     }
   }
 
@@ -906,7 +906,7 @@
         showAnalysisError(message.data.message);
         isAnalyzing = false;
         elements.analyzeBtn.disabled = false;
-        elements.analyzeBtn.textContent = 'Analyze with AI';
+        elements.analyzeBtn.textContent = 'Ask AI';
         elements.sendBtn.disabled = false;
         elements.followupInput.disabled = false;
         break;
