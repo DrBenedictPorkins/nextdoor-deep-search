@@ -35,7 +35,11 @@
     refreshLogsBtn: document.getElementById('refresh-logs-btn'),
     imageOverlay: document.getElementById('image-overlay'),
     imageOverlayImg: document.getElementById('image-overlay-img'),
-    aiProviderBadge: document.getElementById('ai-provider-badge')
+    aiProviderBadge: document.getElementById('ai-provider-badge'),
+    toolbar: document.getElementById('results-toolbar'),
+    toggleLowRelevance: document.getElementById('toggle-low-relevance'),
+    relevanceSummary: document.getElementById('relevance-summary'),
+    relevanceSep: document.getElementById('relevance-sep')
   };
 
   // State
@@ -48,6 +52,10 @@
   let accumulatedResponse = ''; // Accumulate full response for cleaning
   let currentToolUsage = []; // Track tool usage for current response
   let toolStartTime = null; // Track timing for tool execution
+  let queryTerms = [];
+  let scoredThreads = [];
+  let currentSort = 'relevance';
+  let hideLowRelevance = false;
 
   // ============================================================================
   // URL/Image Helpers
@@ -167,6 +175,10 @@
 
     // Delegate click handling for image links in results
     elements.resultsContainer.addEventListener('click', handleLinkClick);
+
+    // Sort/filter toolbar
+    elements.toolbar.addEventListener('click', handleToolbarClick);
+    elements.toggleLowRelevance.addEventListener('click', handleToggleLowRelevance);
   }
 
   // ============================================================================
@@ -196,6 +208,122 @@
   }
 
   // ============================================================================
+  // Relevance Scoring & Highlighting
+  // ============================================================================
+
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function extractQueryTerms(query) {
+    if (!query) return [];
+    return query.toLowerCase().split(/\s+/).filter(t => t.length > 1);
+  }
+
+  function calculateRelevance(thread, terms) {
+    if (!terms.length) return 0;
+    let score = 0;
+    const title = (thread.op.subject || '').toLowerCase();
+    const body = (thread.op.body || '').toLowerCase();
+
+    for (const term of terms) {
+      const re = new RegExp(escapeRegExp(term), 'g');
+      score += (title.match(re) || []).length * 3;
+      score += (body.match(re) || []).length * 2;
+    }
+
+    function scoreComments(comments) {
+      let s = 0;
+      for (const c of comments) {
+        const text = (c.body || '').toLowerCase();
+        for (const term of terms) {
+          s += (text.match(new RegExp(escapeRegExp(term), 'g')) || []).length;
+        }
+        if (c.replies) s += scoreComments(c.replies);
+      }
+      return s;
+    }
+
+    score += scoreComments(thread.comments);
+    return score;
+  }
+
+  function getRelevanceLevel(score, maxScore) {
+    if (score === 0) return 'low';
+    if (score >= maxScore * 0.3) return 'high';
+    return 'medium';
+  }
+
+  function highlightTerms(html, terms) {
+    if (!terms || terms.length === 0 || !html) return html;
+    // Split on HTML tags so we only highlight text nodes
+    const parts = html.split(/(<[^>]+>)/);
+    return parts.map(part => {
+      if (part.startsWith('<')) return part;
+      for (const term of terms) {
+        const re = new RegExp(`(${escapeRegExp(term)})`, 'gi');
+        part = part.replace(re, '<mark>$1</mark>');
+      }
+      return part;
+    }).join('');
+  }
+
+  function scoreAndSortThreads() {
+    scoredThreads = searchData.threads.map(thread => {
+      const commentCount = countAllComments(thread.comments);
+      const score = calculateRelevance(thread, queryTerms);
+      return { thread, score, commentCount };
+    });
+
+    const maxScore = Math.max(...scoredThreads.map(t => t.score), 1);
+    scoredThreads.forEach(t => {
+      t.level = getRelevanceLevel(t.score, maxScore);
+    });
+
+    applySortOrder();
+  }
+
+  function applySortOrder() {
+    if (currentSort === 'relevance') {
+      scoredThreads.sort((a, b) => b.score - a.score);
+    } else if (currentSort === 'comments') {
+      scoredThreads.sort((a, b) => b.commentCount - a.commentCount);
+    } else if (currentSort === 'date') {
+      scoredThreads.sort((a, b) => {
+        return searchData.threads.indexOf(a.thread) - searchData.threads.indexOf(b.thread);
+      });
+    }
+  }
+
+  // ============================================================================
+  // Sort/Filter Toolbar
+  // ============================================================================
+
+  function handleToolbarClick(e) {
+    const btn = e.target.closest('[data-sort]');
+    if (!btn) return;
+
+    const sort = btn.dataset.sort;
+    if (sort === currentSort) return;
+
+    currentSort = sort;
+
+    // Update active button
+    elements.toolbar.querySelectorAll('[data-sort]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    applySortOrder();
+    renderResults();
+  }
+
+  function handleToggleLowRelevance() {
+    hideLowRelevance = !hideLowRelevance;
+    elements.toggleLowRelevance.classList.toggle('active', hideLowRelevance);
+    elements.toggleLowRelevance.textContent = hideLowRelevance ? 'Show all' : 'Hide low match';
+    renderResults();
+  }
+
+  // ============================================================================
   // Load and Render Search Data
   // ============================================================================
 
@@ -208,6 +336,8 @@
       }
 
       searchData = data.lastSearchData;
+      queryTerms = extractQueryTerms(searchData.query);
+      scoreAndSortThreads();
       renderHeader();
       renderResults();
     } catch (e) {
@@ -243,18 +373,45 @@
 
     const date = new Date(searchData.timestamp);
     elements.timestamp.textContent = date.toLocaleString();
+
+    // Relevance summary
+    const highCount = scoredThreads.filter(t => t.level === 'high').length;
+    const medCount = scoredThreads.filter(t => t.level === 'medium').length;
+    const lowCount = scoredThreads.filter(t => t.level === 'low').length;
+    const total = scoredThreads.length;
+    const relevantCount = highCount + medCount;
+
+    if (total > 0) {
+      elements.relevanceSep.style.display = '';
+      const barHtml = `<span class="summary-bar">` +
+        `<span class="seg-high" style="width:${(highCount/total)*100}%"></span>` +
+        `<span class="seg-med" style="width:${(medCount/total)*100}%"></span>` +
+        `<span class="seg-low" style="width:${(lowCount/total)*100}%"></span>` +
+        `</span>`;
+      elements.relevanceSummary.innerHTML =
+        `<span class="relevance-summary">${relevantCount} relevant` +
+        (lowCount > 0 ? ` <span class="low-match-count">(${lowCount} low match)</span>` : '') +
+        ` ${barHtml}</span>`;
+    }
   }
 
   function renderResults() {
     elements.resultsContainer.innerHTML = '';
 
-    for (const thread of searchData.threads) {
-      const card = createThreadCard(thread);
+    const threadsToShow = hideLowRelevance
+      ? scoredThreads.filter(t => t.level !== 'low')
+      : scoredThreads;
+
+    for (const { thread, level, commentCount } of threadsToShow) {
+      const card = createThreadCard(thread, level, commentCount);
       elements.resultsContainer.appendChild(card);
     }
+
+    // Show toolbar
+    elements.toolbar.style.display = 'flex';
   }
 
-  function createThreadCard(thread) {
+  function createThreadCard(thread, level, commentCount) {
     const card = document.createElement('div');
     card.className = 'thread-card';
 
@@ -263,7 +420,7 @@
 
     const title = document.createElement('h3');
     title.className = 'thread-title';
-    title.textContent = thread.op.subject || '(No subject)';
+    title.innerHTML = highlightTerms(escapeHtml(thread.op.subject || '(No subject)'), queryTerms);
 
     const link = document.createElement('a');
     link.className = 'thread-link';
@@ -273,6 +430,36 @@
 
     header.appendChild(title);
     header.appendChild(link);
+
+    // Badges row
+    const badges = document.createElement('div');
+    badges.className = 'thread-badges';
+
+    const relevanceBadge = document.createElement('span');
+    relevanceBadge.className = `relevance-badge ${level}`;
+    const levelLabels = { high: 'High match', medium: 'Some match', low: 'Low match' };
+    relevanceBadge.textContent = levelLabels[level] || level;
+    badges.appendChild(relevanceBadge);
+
+    if (commentCount > 0) {
+      const commentBadge = document.createElement('span');
+      commentBadge.className = 'comment-count-badge';
+      commentBadge.textContent = `${commentCount} comment${commentCount !== 1 ? 's' : ''}`;
+      badges.appendChild(commentBadge);
+    }
+
+    // Collapse toggle for low-relevance
+    if (level === 'low') {
+      card.classList.add('collapsed');
+      const expandBtn = document.createElement('button');
+      expandBtn.className = 'expand-btn';
+      expandBtn.textContent = 'Show';
+      expandBtn.addEventListener('click', () => {
+        card.classList.toggle('collapsed');
+        expandBtn.textContent = card.classList.contains('collapsed') ? 'Show' : 'Hide';
+      });
+      badges.appendChild(expandBtn);
+    }
 
     const meta = document.createElement('div');
     meta.className = 'thread-meta';
@@ -297,9 +484,10 @@
 
     const body = document.createElement('div');
     body.className = 'thread-body';
-    body.innerHTML = linkifyText(thread.op.body) || '(empty)';
+    body.innerHTML = highlightTerms(linkifyText(thread.op.body), queryTerms) || '(empty)';
 
     card.appendChild(header);
+    card.appendChild(badges);
     card.appendChild(meta);
     card.appendChild(body);
 
@@ -373,7 +561,7 @@
 
     const body = document.createElement('div');
     body.className = 'comment-body';
-    body.innerHTML = linkifyText(comment.body) || '(empty)';
+    body.innerHTML = highlightTerms(linkifyText(comment.body), queryTerms) || '(empty)';
 
     card.appendChild(header);
     card.appendChild(body);

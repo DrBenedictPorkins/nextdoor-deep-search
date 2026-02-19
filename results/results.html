@@ -17,6 +17,8 @@
           <span id="comment-count">0 comments</span>
           <span class="separator">•</span>
           <span id="timestamp">...</span>
+          <span class="separator" id="relevance-sep" style="display:none;">•</span>
+          <span id="relevance-summary"></span>
         </div>
       </div>
       <button id="analyze-btn" class="btn-analyze">Analyze with AI</button>
@@ -33,6 +35,19 @@
 
     <!-- Results Container -->
     <main class="results-main">
+      <!-- Sort/Filter Toolbar -->
+      <div class="results-toolbar" id="results-toolbar" style="display: none;">
+        <div class="toolbar-group">
+          <span class="toolbar-label">Sort:</span>
+          <button class="toolbar-btn active" data-sort="relevance">Relevance</button>
+          <button class="toolbar-btn" data-sort="comments">Comments</button>
+          <button class="toolbar-btn" data-sort="date">Date</button>
+        </div>
+        <div class="toolbar-group">
+          <button class="toolbar-btn" id="toggle-low-relevance">Hide low match</button>
+        </div>
+      </div>
+
       <div id="results-container" class="results-container">
         <!-- Thread cards will be rendered here -->
       </div>

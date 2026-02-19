@@ -13,12 +13,16 @@
 
   // DOM Elements
   const elements = {
-    utiStatus: document.getElementById('uti-status'),
-    searchTemplateStatus: document.getElementById('search-template-status'),
-    threadTemplateStatus: document.getElementById('thread-template-status'),
-    pageStatus: document.getElementById('page-status'),
-    queryRow: document.getElementById('query-row'),
-    queryValue: document.getElementById('query-value'),
+    setupSection: document.getElementById('setup-section'),
+    stepBrowse: document.getElementById('step-browse'),
+    stepBrowseIcon: document.getElementById('step-browse-icon'),
+    stepBrowseHint: document.getElementById('step-browse-hint'),
+    stepSearch: document.getElementById('step-search'),
+    stepSearchIcon: document.getElementById('step-search-icon'),
+    stepSearchHint: document.getElementById('step-search-hint'),
+    stepThread: document.getElementById('step-thread'),
+    stepThreadIcon: document.getElementById('step-thread-icon'),
+    stepThreadHint: document.getElementById('step-thread-hint'),
     message: document.getElementById('message'),
     progressSection: document.getElementById('progress-section'),
     progressBar: document.getElementById('progress-bar'),
@@ -72,49 +76,8 @@
   }
 
   function updateUI(status) {
-    // UTI Status
-    if (status.hasUti) {
-      elements.utiStatus.textContent = 'Ready';
-      elements.utiStatus.className = 'status-value ready';
-    } else {
-      elements.utiStatus.textContent = 'Pending';
-      elements.utiStatus.className = 'status-value error';
-    }
-
-    // Search Template Status
-    if (status.hasSearchPostTemplate) {
-      elements.searchTemplateStatus.textContent = 'Ready';
-      elements.searchTemplateStatus.className = 'status-value ready';
-    } else {
-      elements.searchTemplateStatus.textContent = 'Pending';
-      elements.searchTemplateStatus.className = 'status-value warning';
-    }
-
-    // Thread Template Status
-    if (status.hasFeedItemTemplate) {
-      elements.threadTemplateStatus.textContent = 'Ready';
-      elements.threadTemplateStatus.className = 'status-value ready';
-    } else {
-      elements.threadTemplateStatus.textContent = 'Pending';
-      elements.threadTemplateStatus.className = 'status-value warning';
-    }
-
-    // Page Status
-    if (status.isOnNextdoor) {
-      if (status.isOnSearchPage) {
-        elements.pageStatus.textContent = 'Search page';
-        elements.queryRow.style.display = 'flex';
-        elements.queryValue.textContent = status.query || '--';
-      } else {
-        elements.pageStatus.textContent = 'Nextdoor';
-        elements.queryRow.style.display = 'none';
-      }
-      elements.pageStatus.className = 'status-value ready';
-    } else {
-      elements.pageStatus.textContent = 'Not on Nextdoor';
-      elements.pageStatus.className = 'status-value warning';
-      elements.queryRow.style.display = 'none';
-    }
+    // Update stepper
+    updateStepper(status);
 
     // Session stats
     elements.sessionCount.textContent = status.sessionSearchCount || 0;
@@ -149,34 +112,65 @@
     }
   }
 
+  function updateStepper(status) {
+    const steps = [
+      { done: status.hasUti, el: elements.stepBrowse, icon: elements.stepBrowseIcon, hint: elements.stepBrowseHint, num: '1', hintText: 'Go to nextdoor.com' },
+      { done: status.hasSearchPostTemplate, el: elements.stepSearch, icon: elements.stepSearchIcon, hint: elements.stepSearchHint, num: '2', hintText: 'Search for anything on Nextdoor' },
+      { done: status.hasFeedItemTemplate, el: elements.stepThread, icon: elements.stepThreadIcon, hint: elements.stepThreadHint, num: '3', hintText: 'Click any post on Nextdoor' },
+    ];
+
+    let firstIncomplete = -1;
+    const allDone = steps.every(s => s.done);
+
+    steps.forEach((step, i) => {
+      step.icon.setAttribute('data-step', step.num);
+      step.hint.textContent = '';
+      step.hint.classList.remove('visible');
+      step.el.classList.remove('done', 'active');
+
+      if (step.done) {
+        step.icon.className = 'step-icon done';
+        step.el.classList.add('done');
+      } else if (firstIncomplete === -1) {
+        firstIncomplete = i;
+        step.icon.className = 'step-icon active';
+        step.el.classList.add('active');
+        step.hint.textContent = step.hintText;
+        step.hint.classList.add('visible');
+      } else {
+        step.icon.className = 'step-icon pending';
+      }
+    });
+
+    if (allDone) {
+      elements.setupSection.classList.add('all-done');
+    } else {
+      elements.setupSection.classList.remove('all-done');
+    }
+  }
+
   function updateMessageAndButton(status) {
     if (isRunning) {
       showMessage('info', 'Deep search in progress...');
       return;
     }
 
-    // Check readiness: need UTI, searchPost template, FeedItem template, and be on nextdoor.com
-    if (!status.hasUti) {
-      showMessage('warning', 'Browse Nextdoor to capture authentication');
-      elements.searchBtn.disabled = true;
-    } else if (!status.hasSearchPostTemplate) {
-      showMessage('warning', 'Search on Nextdoor first, then click Deep Search');
-      elements.searchBtn.disabled = true;
-    } else if (!status.hasFeedItemTemplate) {
-      showMessage('warning', 'Click on a post to capture thread template');
+    const allCaptured = status.hasUti && status.hasSearchPostTemplate && status.hasFeedItemTemplate;
+
+    if (!allCaptured) {
+      // Stepper handles the instructions; hide the message
+      hideMessage();
       elements.searchBtn.disabled = true;
     } else if (!status.isOnNextdoor) {
       showMessage('info', 'Navigate to nextdoor.com to use Deep Search');
       elements.searchBtn.disabled = true;
+    } else if (status.query || status.lastQuery) {
+      const q = status.query || status.lastQuery;
+      showMessage('info', `"${q}" — extract all comments and details`);
+      elements.searchBtn.disabled = false;
     } else {
-      // Ready to search - check if we have a query available
-      if (status.lastQuery) {
-        showMessage('info', `Ready to search: "${status.lastQuery}"`);
-        elements.searchBtn.disabled = false;
-      } else {
-        showMessage('info', 'Perform a search on Nextdoor first');
-        elements.searchBtn.disabled = true;
-      }
+      showMessage('info', 'Search on Nextdoor first, then click Deep Search to extract full details');
+      elements.searchBtn.disabled = true;
     }
     elements.searchBtn.textContent = 'Deep Search';
   }

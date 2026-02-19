@@ -12,34 +12,32 @@
       <button id="settings-btn" class="settings-btn" title="AI Settings">⚙️</button>
     </header>
 
-    <!-- Status Section -->
-    <section class="status-section">
-      <h2>Status</h2>
-      <div class="status-grid">
-        <div class="status-item">
-          <span class="status-label">UTI:</span>
-          <span id="uti-status" class="status-value">--</span>
+    <!-- Setup Stepper -->
+    <section class="setup-section" id="setup-section">
+      <div class="setup-step" id="step-browse">
+        <div class="step-icon" id="step-browse-icon"></div>
+        <div class="step-content">
+          <div class="step-label">Browse Nextdoor</div>
+          <div class="step-hint" id="step-browse-hint"></div>
         </div>
-        <div class="status-item">
-          <span class="status-label">Search:</span>
-          <span id="search-template-status" class="status-value">--</span>
+      </div>
+      <div class="setup-step" id="step-search">
+        <div class="step-icon" id="step-search-icon"></div>
+        <div class="step-content">
+          <div class="step-label">Search for something</div>
+          <div class="step-hint" id="step-search-hint"></div>
         </div>
-        <div class="status-item">
-          <span class="status-label">Thread:</span>
-          <span id="thread-template-status" class="status-value">--</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">Page:</span>
-          <span id="page-status" class="status-value">--</span>
-        </div>
-        <div class="status-item full-width" id="query-row" style="display: none;">
-          <span class="status-label">Query:</span>
-          <span id="query-value" class="status-value">--</span>
+      </div>
+      <div class="setup-step" id="step-thread">
+        <div class="step-icon" id="step-thread-icon"></div>
+        <div class="step-content">
+          <div class="step-label">Click on any post</div>
+          <div class="step-hint" id="step-thread-hint"></div>
         </div>
       </div>
     </section>
 
-    <!-- Message Area -->
+    <!-- Message Area (search-time messages) -->
     <section class="message-section">
       <div id="message" class="message"></div>
     </section>
